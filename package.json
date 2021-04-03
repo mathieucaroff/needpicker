@@ -1,0 +1,21 @@
+{
+   "name": "needpicker",
+   "description": "",
+   "repository": "https://github.com/mathieucaroff/needpicker",
+   "license": "ISC",
+   "version": "1.0.0",
+   "scripts": {
+      "build": "parcel build src/page.html -d public -o index.html",
+      "start": "parcel start src/page.html"
+   },
+   "devDependencies": {
+      "@types/node": "^13.9.1",
+      "parcel": "^1.12.4",
+      "prettier": "^1.19.1",
+      "ts-node": "^8.6.2",
+      "typescript": "^3.8.3"
+   },
+   "dependencies": {
+      "@coreui/coreui": "^3.4.0"
+   }
+}
