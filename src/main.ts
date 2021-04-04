@@ -1,9 +1,7 @@
-import { inflate } from 'zlib'
 import { h } from './lib/hyper'
 import { aurSet } from './need/aur'
+import { Need } from './need/needSet'
 import { initPage } from './page/init'
-import { atom, Atom } from './statelib'
-import { concat } from './util/concat'
 
 export let main = async () => {
    let { maindiv } = initPage({ document, window })
@@ -19,83 +17,122 @@ export let main = async () => {
    /* State */
    interface State {
       needMap: Record<string, boolean>
+      search: string
    }
 
-   /* Store */
-   interface Topic {
-      needMap: Record<string, boolean>
-   }
-   interface Store {
-      state: State
-      hook: Topic
-      reducerList: Reducer[]
-      dispatch: (action: Action) => void
-      register: (reducer: Reducer) => void
+   interface Computed {
+      searchRegex: RegExp
    }
 
-   let store: Store = {
-      state: {
-         needMap: Object.fromEntries(aurSet.getNeedList().map(({ name }) => [name, atom(false)])),
-      },
-      reducerList: [],
-      dispatch: (action) => {
-         store.reducerList.forEach((reducer) => {
-            store.state = reducer(action, store.state)
-         })
-      },
-      register: (reducer) => {
-         store.reducerList.push(reducer)
-      },
+   let state: State = {
+      needMap: Object.fromEntries(aurSet.getNeedList().map(({ name }) => [name, false])),
+      search: '',
    }
 
-   /* Reducer */
-   interface Reducer {
-      (action: Action, state: State): State
+   let computed: Computed = {
+      searchRegex: /.*/,
    }
 
-   // needReducer
-   store.register((action, state) => {
-      if (action.kind === 'toggleNeed') {
-         return { ...state, activeNeedList }
-      }
+   let getButtonDisplayState = (needName: string) => {
+      return state.needMap[needName] || needName.match(computed.searchRegex)
+   }
 
-      return state
+   let getButtonClass = (needName: string) => {
+      let addDNone = getButtonDisplayState(needName) ? '' : ' d-none'
+      return `btn btn-pill btn-${state.needMap[needName] ? 'primary' : 'secondary'}${addDNone} mx-1`
+   }
+
+   let getCardBlockClass = (group: Need[]) => {
+      let addDNone = group.some(({ name }) => getButtonDisplayState(name)) ? '' : ' d-none'
+      return `card-block${addDNone}`
+   }
+
+   let refreshButtonClass = (needName: string) => {
+      needButtonMap[needName].className = getButtonClass(needName)
+   }
+
+   let refreshCardBlockClass = (groupIndex: number) => {
+      let group = aurSet.getGroupList()[groupIndex]
+      groupCardBlockArray[groupIndex].className = getCardBlockClass(group)
+   }
+
+   let refreshActiveNeedRecap = () => {
+      ;[...activeNeedDisplay.children].forEach((child) => {
+         activeNeedDisplay.removeChild(child)
+      })
+
+      Object.entries(state.needMap).forEach(([needName, active]) => {
+         if (active) {
+            activeNeedDisplay.appendChild(htmlButton(needName))
+         }
+      })
+   }
+
+   let handleSearchChange = () => {
+      state.search = needSearchBox.value
+      let normalized = state.search.toLowerCase().replace(/\W/, '')
+      let regexString = normalized.split('').join('.*')
+      computed.searchRegex = new RegExp(regexString)
+
+      Object.keys(needButtonMap).forEach((needName) => {
+         refreshButtonClass(needName)
+      })
+      groupCardBlockArray.forEach((_, groupIndex) => {
+         refreshCardBlockClass(groupIndex)
+      })
+   }
+
+   let handleButtonClick = (needName: string) => () => {
+      state.needMap[needName] = !state.needMap[needName]
+      refreshButtonClass(needName)
+      refreshActiveNeedRecap()
+   }
+
+   let htmlButton = (needName: string) => {
+      let need = aurSet.getNeed(needName)
+
+      return h('button', {
+         type: 'button',
+         className: getButtonClass(need.name),
+         textContent: need.verbose,
+         onclick: handleButtonClick(need.name),
+      })
+   }
+
+   /* Page component access shortcut */
+   let needButtonMap: Record<string, HTMLButtonElement> = {}
+   let groupCardBlockArray: HTMLDivElement[] = []
+
+   /* Page content */
+   let needSearchBox = h('input', {
+      className: 'my-4 form-control',
+      placeholder: 'Search for your needs...',
+      onchange: handleSearchChange,
+      onkeydown: handleSearchChange,
+      onkeyup: handleSearchChange,
    })
 
-   /* Event handler */
-   let handleButtonClick = (needName) => {
-      store.dispatch({ kind: 'toggleNeed', needName })
-   }
+   let activeNeedDisplay = h('div', { className: 'my-3' })
 
-   /* Propagation */
    let needButtonGroupDiv = h(
       'div',
-      {},
-      aurSet.getGroupList().map((group) =>
-         h(
-            'div',
-            {
-               className: 'my-3',
-            },
-            group.map((need) =>
-               h(
-                  'div',
-                  {
-                     className: 'my-1',
-                  },
-                  [
-                     h('button', {
-                        type: 'button',
-                        className: 'btn btn-pill btn-secondary',
-                        textContent: need.verbose,
-                        onclick: handleButtonClick(need.name),
-                     }),
-                  ],
+      { className: 'card-columns' },
+      aurSet.getGroupList().map((group, groupIndex) =>
+         h('div', { className: 'card' }, [
+            (groupCardBlockArray[groupIndex] = h(
+               'div',
+               { className: getCardBlockClass(group) },
+               group.map((need) =>
+                  h('div', { className: 'my-1' }, [
+                     (needButtonMap[need.name] = htmlButton(need.name)),
+                  ]),
                ),
-            ),
-         ),
+            )),
+         ]),
       ),
    )
 
+   maindiv.appendChild(needSearchBox)
+   maindiv.appendChild(activeNeedDisplay)
    maindiv.appendChild(needButtonGroupDiv)
 }

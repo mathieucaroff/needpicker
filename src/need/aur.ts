@@ -59,7 +59,7 @@ Understanding
 
 Concertation
 Connection
-Contributing to the well-being or development of oneself/others
+Contributing to the well-being of oneself/others
 Cooperation
 Interdependence
 
@@ -92,4 +92,4 @@ Contribution to life (of others / of my own)
 Recognition
 Ritualization
 Sharing joys and sorrows
-Taking the measure of grief and loss (of an opportunity, an affection, a dream, a dashed ambition...)`)
+Taking the measure of grief and loss`)

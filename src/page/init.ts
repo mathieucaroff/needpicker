@@ -14,14 +14,7 @@ export let initPage = (prop: InitProp) => {
 
    let corner = h('i', { innerHTML: githubCornerHTML(repository) })
 
-   document.body.append(
-      h('h1', {
-         textContent: document.title,
-         className: 'inline',
-      }),
-      maindiv,
-      corner,
-   )
+   document.body.append(h('h1', { textContent: document.title }), maindiv, corner)
 
    return { maindiv }
 }
